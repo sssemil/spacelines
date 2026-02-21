@@ -5,7 +5,7 @@ import { gstime } from 'satellite.js'
 import { GroundStationResponseSchema, type GroundStation } from '../../schemas/ground-station'
 import { useFilterStore } from '../../store/filter-store'
 
-const SATNOGS_STATIONS_URL = '/api/satnogs/api/stations/?format=json'
+const SATNOGS_STATIONS_URL = 'https://network.satnogs.org/api/stations/?format=json'
 const STATION_RADIUS = 1.003
 
 const geoToXYZ = (lon: number, lat: number): readonly [number, number, number] => {
