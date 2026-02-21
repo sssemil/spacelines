@@ -10,6 +10,7 @@ describe('filter store', () => {
         'galileo', 'beidou', 'weather', 'earth-observation',
         'communications', 'debris', 'rocket-body',
       ]),
+      showGroundStations: true,
     })
   })
 
@@ -59,5 +60,22 @@ describe('filter store', () => {
 
     expect(useFilterStore.getState().activeCategories.size).toBe(13)
     expect(useFilterStore.getState().activeCategories.has('unknown')).toBe(true)
+  })
+
+  it('should start with ground stations visible', () => {
+    expect(useFilterStore.getState().showGroundStations).toBe(true)
+  })
+
+  it('should toggle ground stations off', () => {
+    useFilterStore.getState().toggleGroundStations()
+
+    expect(useFilterStore.getState().showGroundStations).toBe(false)
+  })
+
+  it('should toggle ground stations back on', () => {
+    useFilterStore.getState().toggleGroundStations()
+    useFilterStore.getState().toggleGroundStations()
+
+    expect(useFilterStore.getState().showGroundStations).toBe(true)
   })
 })

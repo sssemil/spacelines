@@ -24,6 +24,10 @@ const CATEGORIES = Object.keys(CATEGORY_LABELS) as SatelliteCategory[]
 export const FilterPanel = () => {
   const activeCategories = useFilterStore((s) => s.activeCategories)
   const toggleCategory = useFilterStore((s) => s.toggleCategory)
+  const enableAll = useFilterStore((s) => s.enableAllCategories)
+  const disableAll = useFilterStore((s) => s.disableAllCategories)
+  const showGroundStations = useFilterStore((s) => s.showGroundStations)
+  const toggleGroundStations = useFilterStore((s) => s.toggleGroundStations)
   const satellites = useSatelliteStore((s) => s.satellites)
 
   const categoryCounts = useMemo(() => {
@@ -37,6 +41,12 @@ export const FilterPanel = () => {
   return (
     <div className="panel filter-panel">
       <div className="filter-chips">
+        <button className="filter-chip active" onClick={enableAll}>
+          <span className="chip-label">All</span>
+        </button>
+        <button className="filter-chip active" onClick={disableAll}>
+          <span className="chip-label">None</span>
+        </button>
         {CATEGORIES.map((category) => {
           const count = categoryCounts.get(category) ?? 0
           if (count === 0) return null
@@ -53,6 +63,12 @@ export const FilterPanel = () => {
             </button>
           )
         })}
+        <button
+          className={`filter-chip stations ${showGroundStations ? 'active' : 'inactive'}`}
+          onClick={toggleGroundStations}
+        >
+          <span className="chip-label">Ground Stations</span>
+        </button>
       </div>
     </div>
   )

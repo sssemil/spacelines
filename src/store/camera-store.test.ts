@@ -6,6 +6,7 @@ describe('camera store', () => {
     useCameraStore.setState({
       target: null,
       isAnimating: false,
+      sunTrackMode: true,
     })
   })
 
@@ -37,5 +38,32 @@ describe('camera store', () => {
 
     expect(useCameraStore.getState().target).toBeNull()
     expect(useCameraStore.getState().isAnimating).toBe(false)
+    expect(useCameraStore.getState().sunTrackMode).toBe(true)
+  })
+
+  it('should default sunTrackMode to true', () => {
+    expect(useCameraStore.getState().sunTrackMode).toBe(true)
+  })
+
+  it('should disable sun tracking', () => {
+    useCameraStore.getState().disableSunTrack()
+
+    expect(useCameraStore.getState().sunTrackMode).toBe(false)
+  })
+
+  it('should enable sun tracking and clear target', () => {
+    useCameraStore.getState().flyTo({ x: 1, y: 2, z: 3 })
+
+    useCameraStore.getState().enableSunTrack()
+
+    expect(useCameraStore.getState().sunTrackMode).toBe(true)
+    expect(useCameraStore.getState().target).toBeNull()
+    expect(useCameraStore.getState().isAnimating).toBe(false)
+  })
+
+  it('should disable sun tracking when flying to target', () => {
+    useCameraStore.getState().flyTo({ x: 1, y: 2, z: 3 })
+
+    expect(useCameraStore.getState().sunTrackMode).toBe(false)
   })
 })

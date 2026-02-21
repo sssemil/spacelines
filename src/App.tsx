@@ -3,6 +3,8 @@ import { SearchPanel } from './ui/panels/search-panel'
 import { FilterPanel } from './ui/panels/filter-panel'
 import { DetailPanel } from './ui/panels/detail-panel'
 import { StatsBar } from './ui/panels/stats-bar'
+import { NorthButton } from './ui/panels/north-button'
+import { useEffect } from 'react'
 import { useSatelliteData } from './hooks/use-satellite-data'
 import { useSatelliteStore } from './store/satellite-store'
 import './app.css'
@@ -27,6 +29,15 @@ export const App = () => {
   useSatelliteData()
   const loading = useSatelliteStore((s) => s.loading)
   const error = useSatelliteStore((s) => s.error)
+  const clearSelection = useSatelliteStore((s) => s.clearSelection)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') clearSelection()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [clearSelection])
 
   return (
     <div className="app">
@@ -43,6 +54,7 @@ export const App = () => {
 
         <FilterPanel />
         <DetailPanel />
+        <NorthButton />
         <StatsBar />
       </div>
 

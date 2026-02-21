@@ -18,6 +18,7 @@ describe('FilterPanel', () => {
         'galileo', 'beidou', 'weather', 'earth-observation',
         'communications', 'debris', 'rocket-body', 'unknown',
       ]),
+      showGroundStations: true,
     })
     useSatelliteStore.setState({
       satellites: [
@@ -55,9 +56,9 @@ describe('FilterPanel', () => {
   it('should render category filter buttons', () => {
     render(<FilterPanel />)
 
-    expect(screen.getByText(/station/i)).toBeInTheDocument()
-    expect(screen.getByText(/starlink/i)).toBeInTheDocument()
-    expect(screen.getByText(/debris/i)).toBeInTheDocument()
+    expect(screen.getByText('Station')).toBeInTheDocument()
+    expect(screen.getByText('Starlink')).toBeInTheDocument()
+    expect(screen.getByText('Debris')).toBeInTheDocument()
   })
 
   it('should toggle a category when clicked', async () => {
@@ -75,5 +76,29 @@ describe('FilterPanel', () => {
 
     const countElements = screen.getAllByText('1')
     expect(countElements).toHaveLength(3)
+  })
+
+  it('should render a Ground Stations chip', () => {
+    render(<FilterPanel />)
+
+    expect(screen.getByText('Ground Stations')).toBeInTheDocument()
+  })
+
+  it('should toggle ground stations when Ground Stations chip is clicked', async () => {
+    const user = userEvent.setup()
+    render(<FilterPanel />)
+
+    const stationsBtn = screen.getByText('Ground Stations')
+    await user.click(stationsBtn)
+
+    expect(useFilterStore.getState().showGroundStations).toBe(false)
+  })
+
+  it('should style Ground Stations chip as inactive when ground stations are hidden', () => {
+    useFilterStore.setState({ showGroundStations: false })
+    render(<FilterPanel />)
+
+    const chip = screen.getByText('Ground Stations').closest('button')
+    expect(chip?.className).toContain('inactive')
   })
 })

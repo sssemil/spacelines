@@ -27,7 +27,7 @@ type GeoJsonCollection = {
 
 const geoToXYZ = (lon: number, lat: number): readonly [number, number, number] => {
   const phi = (90 - lat) * (Math.PI / 180)
-  const theta = lon * (Math.PI / 180)
+  const theta = -lon * (Math.PI / 180)
   return [
     SURFACE_RADIUS * Math.sin(phi) * Math.cos(theta),
     SURFACE_RADIUS * Math.cos(phi),

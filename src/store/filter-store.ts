@@ -14,15 +14,19 @@ const DEFAULT_CATEGORIES: readonly SatelliteCategory[] = ALL_CATEGORIES.filter(
 type FilterState = {
   readonly searchQuery: string
   readonly activeCategories: Set<SatelliteCategory>
+  readonly showGroundStations: boolean
   readonly setSearchQuery: (query: string) => void
   readonly toggleCategory: (category: SatelliteCategory) => void
   readonly setOnlyCategory: (category: SatelliteCategory) => void
   readonly enableAllCategories: () => void
+  readonly disableAllCategories: () => void
+  readonly toggleGroundStations: () => void
 }
 
 export const useFilterStore = create<FilterState>((set) => ({
   searchQuery: '',
   activeCategories: new Set(DEFAULT_CATEGORIES),
+  showGroundStations: true,
   setSearchQuery: (query) => set({ searchQuery: query }),
   toggleCategory: (category) =>
     set((state) => {
@@ -38,4 +42,8 @@ export const useFilterStore = create<FilterState>((set) => ({
     set({ activeCategories: new Set([category]) }),
   enableAllCategories: () =>
     set({ activeCategories: new Set(ALL_CATEGORIES) }),
+  disableAllCategories: () =>
+    set({ activeCategories: new Set() }),
+  toggleGroundStations: () =>
+    set((state) => ({ showGroundStations: !state.showGroundStations })),
 }))

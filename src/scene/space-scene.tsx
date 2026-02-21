@@ -1,6 +1,8 @@
 import { Canvas } from '@react-three/fiber'
 import { EarthGlobe } from './earth/earth-globe'
+import { EarthLandmass } from './earth/earth-landmass'
 import { EarthCoastlines } from './earth/earth-coastlines'
+import { GroundStations } from './earth/ground-stations'
 import { StarField } from './effects/star-field'
 import { SatellitePoints } from './satellites/satellite-points'
 import { SelectedSatellite } from './satellites/selected-satellite'
@@ -27,7 +29,9 @@ export const SpaceScene = () => {
 
       <StarField />
       <EarthGlobe />
+      <EarthLandmass />
       <EarthCoastlines />
+      <GroundStations />
       <SatellitePoints />
       <SelectedSatellite />
       <SatelliteLabels />
