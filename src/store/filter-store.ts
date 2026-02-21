@@ -7,6 +7,10 @@ const ALL_CATEGORIES: readonly SatelliteCategory[] = [
   'communications', 'debris', 'rocket-body', 'unknown',
 ]
 
+const DEFAULT_CATEGORIES: readonly SatelliteCategory[] = ALL_CATEGORIES.filter(
+  (c) => c !== 'unknown',
+)
+
 type FilterState = {
   readonly searchQuery: string
   readonly activeCategories: Set<SatelliteCategory>
@@ -18,7 +22,7 @@ type FilterState = {
 
 export const useFilterStore = create<FilterState>((set) => ({
   searchQuery: '',
-  activeCategories: new Set(ALL_CATEGORIES),
+  activeCategories: new Set(DEFAULT_CATEGORIES),
   setSearchQuery: (query) => set({ searchQuery: query }),
   toggleCategory: (category) =>
     set((state) => {

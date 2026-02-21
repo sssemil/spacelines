@@ -10,23 +10,26 @@ import { SpatialIndex } from '../../utils/spatial-index'
 import { SCENE_SCALE } from '../../orbital/transforms'
 
 const MAX_SATELLITES = 50000
+const UPDATE_EVERY_N_FRAMES = 15
 
 export const SatellitePoints = () => {
   const pointsRef = useRef<THREE.Points>(null)
   const spatialIndexRef = useRef(new SpatialIndex(0.5))
+  const frameRef = useRef(0)
+  const visibleCountRef = useRef(0)
 
   const satellites = useSatelliteStore((s) => s.satellites)
+  const selectedId = useSatelliteStore((s) => s.selectedId)
   const selectSatellite = useSatelliteStore((s) => s.selectSatellite)
   const activeCategories = useFilterStore((s) => s.activeCategories)
 
   const material = useMemo(() => createPointMaterial(), [])
 
-  const buffers = useMemo(() => {
-    const positions = new Float32Array(MAX_SATELLITES * 3)
-    const colors = new Float32Array(MAX_SATELLITES * 3)
-    const sizes = new Float32Array(MAX_SATELLITES)
-    return { positions, colors, sizes }
-  }, [])
+  const buffers = useMemo(() => ({
+    positions: new Float32Array(MAX_SATELLITES * 3),
+    colors: new Float32Array(MAX_SATELLITES * 3),
+    sizes: new Float32Array(MAX_SATELLITES),
+  }), [])
 
   const filteredIndices = useMemo(() => {
     const indices: number[] = []
@@ -41,9 +44,15 @@ export const SatellitePoints = () => {
   useFrame(() => {
     if (!pointsRef.current || satellites.length === 0) return
 
+    frameRef.current++
+    const isFirstFrame = frameRef.current <= 2
+    const shouldUpdate = isFirstFrame || frameRef.current % UPDATE_EVERY_N_FRAMES === 0
+
+    if (!shouldUpdate) return
+
     const geometry = pointsRef.current.geometry
     const now = new Date()
-
+    const hasSelection = selectedId !== null
     let visibleCount = 0
 
     for (const satIndex of filteredIndices) {
@@ -62,14 +71,16 @@ export const SatellitePoints = () => {
       buffers.positions[idx + 2] = -pos.y * SCENE_SCALE
 
       const color = getCategoryColor(sat.category)
-      buffers.colors[idx] = color[0]
-      buffers.colors[idx + 1] = color[1]
-      buffers.colors[idx + 2] = color[2]
+      const dim = hasSelection ? 0.15 : 1
+      buffers.colors[idx] = color[0] * dim
+      buffers.colors[idx + 1] = color[1] * dim
+      buffers.colors[idx + 2] = color[2] * dim
 
       buffers.sizes[visibleCount] = getCategorySize(sat.category)
-
       visibleCount++
     }
+
+    visibleCountRef.current = visibleCount
 
     const posAttr = geometry.getAttribute('position') as THREE.BufferAttribute
     posAttr.needsUpdate = true
@@ -81,43 +92,71 @@ export const SatellitePoints = () => {
     sizeAttr.needsUpdate = true
 
     geometry.setDrawRange(0, visibleCount)
-
     spatialIndexRef.current.build(buffers.positions, visibleCount)
   })
 
-  const { camera, raycaster } = useThree()
+  const { camera } = useThree()
+
+  const raycasterRef = useRef(new THREE.Raycaster())
+  const mouseRef = useRef(new THREE.Vector2())
+  const pointerDownRef = useRef({ x: 0, y: 0 })
+
+  const handlePointerDown = useCallback((event: ThreeEvent<PointerEvent>) => {
+    pointerDownRef.current = { x: event.nativeEvent.clientX, y: event.nativeEvent.clientY }
+  }, [])
+
+  const DRAG_THRESHOLD = 5
 
   const handleClick = useCallback(
     (event: ThreeEvent<MouseEvent>) => {
-      if (!pointsRef.current) return
+      const dx = event.nativeEvent.clientX - pointerDownRef.current.x
+      const dy = event.nativeEvent.clientY - pointerDownRef.current.y
+      if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) return
 
-      const mouse = new THREE.Vector2()
       const rect = (event.nativeEvent.target as HTMLCanvasElement).getBoundingClientRect()
-
-      mouse.x = ((event.nativeEvent.clientX - rect.left) / rect.width) * 2 - 1
-      mouse.y = -((event.nativeEvent.clientY - rect.top) / rect.height) * 2 + 1
-
-      raycaster.setFromCamera(mouse, camera)
-
-      const origin = raycaster.ray.origin
-      const direction = raycaster.ray.direction
-      const testPoint = origin
-        .clone()
-        .add(direction.clone().multiplyScalar(3))
-
-      const nearestIdx = spatialIndexRef.current.findNearest(
-        testPoint.x,
-        testPoint.y,
-        testPoint.z,
-        0.1,
+      mouseRef.current.set(
+        ((event.nativeEvent.clientX - rect.left) / rect.width) * 2 - 1,
+        -((event.nativeEvent.clientY - rect.top) / rect.height) * 2 + 1,
       )
 
-      if (nearestIdx >= 0 && nearestIdx < filteredIndices.length) {
-        const satIndex = filteredIndices[nearestIdx]
+      raycasterRef.current.setFromCamera(mouseRef.current, camera)
+      const origin = raycasterRef.current.ray.origin
+      const dir = raycasterRef.current.ray.direction
+
+      let bestIdx = -1
+      let bestAngle = 0.03
+
+      for (let d = 0.3; d < 12.0; d += 0.3) {
+        const idx = spatialIndexRef.current.findNearest(
+          origin.x + dir.x * d,
+          origin.y + dir.y * d,
+          origin.z + dir.z * d,
+          0.5,
+        )
+        if (idx < 0) continue
+
+        const sx = buffers.positions[idx * 3] - origin.x
+        const sy = buffers.positions[idx * 3 + 1] - origin.y
+        const sz = buffers.positions[idx * 3 + 2] - origin.z
+        const t = sx * dir.x + sy * dir.y + sz * dir.z
+        if (t < 0.1) continue
+        const cx = origin.x + dir.x * t - buffers.positions[idx * 3]
+        const cy = origin.y + dir.y * t - buffers.positions[idx * 3 + 1]
+        const cz = origin.z + dir.z * t - buffers.positions[idx * 3 + 2]
+        const angle = Math.sqrt(cx * cx + cy * cy + cz * cz) / t
+
+        if (angle < bestAngle) {
+          bestAngle = angle
+          bestIdx = idx
+        }
+      }
+
+      if (bestIdx >= 0 && bestIdx < filteredIndices.length) {
+        const satIndex = filteredIndices[bestIdx]
         selectSatellite(satellites[satIndex].id)
       }
     },
-    [camera, raycaster, filteredIndices, satellites, selectSatellite],
+    [camera, buffers.positions, filteredIndices, satellites, selectSatellite],
   )
 
   const positionAttr = useMemo(
@@ -141,12 +180,25 @@ export const SatellitePoints = () => {
     return geo
   }, [positionAttr, colorAttr, sizeAttr])
 
+  const hitMaterial = useMemo(
+    () => new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide }),
+    [],
+  )
+
   return (
-    <points
-      ref={pointsRef}
-      material={material}
-      geometry={geometry}
-      onClick={handleClick}
-    />
+    <group>
+      <points
+        ref={pointsRef}
+        material={material}
+        geometry={geometry}
+      />
+      <mesh
+        onPointerDown={handlePointerDown}
+        onClick={handleClick}
+        material={hitMaterial}
+      >
+        <sphereGeometry args={[15, 8, 8]} />
+      </mesh>
+    </group>
   )
 }

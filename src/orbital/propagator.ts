@@ -74,3 +74,40 @@ export const computeOrbitPath = ({
 
   return points
 }
+
+type SplitOrbitPath = {
+  readonly past: readonly ScenePosition[]
+  readonly future: readonly ScenePosition[]
+}
+
+export const computeSplitOrbitPath = ({
+  satrec,
+  date,
+  meanMotion,
+  segments,
+}: ComputeOrbitPathOptions): SplitOrbitPath => {
+  const orbitalPeriodMs = (24 * 60 * 60 * 1000) / meanMotion
+  const halfPeriodMs = orbitalPeriodMs / 2
+  const now = date.getTime()
+  const halfSegments = Math.floor(segments / 2)
+
+  const past: ScenePosition[] = []
+  for (let i = 0; i < halfSegments; i++) {
+    const t = now - halfPeriodMs + (i / halfSegments) * halfPeriodMs
+    const pos = propagatePosition(satrec, new Date(t))
+    if (pos) {
+      past.push(pos.scene)
+    }
+  }
+
+  const future: ScenePosition[] = []
+  for (let i = 0; i < halfSegments; i++) {
+    const t = now + (i / halfSegments) * halfPeriodMs
+    const pos = propagatePosition(satrec, new Date(t))
+    if (pos) {
+      future.push(pos.scene)
+    }
+  }
+
+  return { past, future }
+}

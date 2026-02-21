@@ -8,7 +8,7 @@ describe('filter store', () => {
       activeCategories: new Set([
         'station', 'starlink', 'oneweb', 'gps', 'glonass',
         'galileo', 'beidou', 'weather', 'earth-observation',
-        'communications', 'debris', 'rocket-body', 'unknown',
+        'communications', 'debris', 'rocket-body',
       ]),
     })
   })
@@ -17,11 +17,13 @@ describe('filter store', () => {
     expect(useFilterStore.getState().searchQuery).toBe('')
   })
 
-  it('should start with all categories active', () => {
+  it('should start with all categories active except unknown', () => {
     const categories = useFilterStore.getState().activeCategories
     expect(categories.has('station')).toBe(true)
     expect(categories.has('starlink')).toBe(true)
     expect(categories.has('debris')).toBe(true)
+    expect(categories.has('unknown')).toBe(false)
+    expect(categories.size).toBe(12)
   })
 
   it('should update search query', () => {
@@ -51,10 +53,11 @@ describe('filter store', () => {
     expect(categories.has('station')).toBe(true)
   })
 
-  it('should enable all categories', () => {
+  it('should enable all categories including unknown', () => {
     useFilterStore.getState().setOnlyCategory('station')
     useFilterStore.getState().enableAllCategories()
 
     expect(useFilterStore.getState().activeCategories.size).toBe(13)
+    expect(useFilterStore.getState().activeCategories.has('unknown')).toBe(true)
   })
 })

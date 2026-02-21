@@ -4,30 +4,53 @@ import { Line, Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { useSatelliteStore } from '../../store/satellite-store'
 import { useCameraStore } from '../../store/camera-store'
-import { propagatePosition, computeOrbitPath } from '../../orbital/propagator'
-import type { ScenePosition } from '../../types/satellite'
+import { propagatePosition, computeSplitOrbitPath } from '../../orbital/propagator'
+import { formatCoordinate, formatVelocity } from '../../utils/formatters'
+import type { ScenePosition, SatellitePosition } from '../../types/satellite'
+
+const ORBIT_COLOR = '#33ff33'
+const ORBIT_SEGMENTS = 200
+
+const toVec3Array = (points: readonly ScenePosition[]): THREE.Vector3[] =>
+  points.map((p) => new THREE.Vector3(p.x, p.y, p.z))
+
+const labelStyle: React.CSSProperties = {
+  fontFamily: "'Courier New', monospace",
+  fontSize: '10px',
+  color: '#33ff33',
+  background: 'rgba(0, 0, 0, 0.85)',
+  border: '1px solid #1a8a1a',
+  padding: '2px 5px',
+  whiteSpace: 'nowrap',
+  pointerEvents: 'none',
+  lineHeight: '1.4',
+}
 
 export const SelectedSatellite = () => {
   const markerRef = useRef<THREE.Mesh>(null)
+  const posRef = useRef<SatellitePosition | null>(null)
   const selectedSatellite = useSatelliteStore((s) => s.getSelectedSatellite())
   const flyTo = useCameraStore((s) => s.flyTo)
 
-  const orbitPath = useMemo(() => {
+  const splitPath = useMemo(() => {
     if (!selectedSatellite) return null
-    return computeOrbitPath({
+    return computeSplitOrbitPath({
       satrec: selectedSatellite.satrec,
       date: new Date(),
       meanMotion: selectedSatellite.satrec.no * 1440 / (2 * Math.PI),
-      segments: 200,
+      segments: ORBIT_SEGMENTS,
     })
   }, [selectedSatellite])
 
-  const orbitPoints = useMemo(() => {
-    if (!orbitPath) return null
-    return orbitPath.map(
-      (p: ScenePosition) => new THREE.Vector3(p.x, p.y, p.z),
-    )
-  }, [orbitPath])
+  const pastPoints = useMemo(() => {
+    if (!splitPath) return null
+    return toVec3Array(splitPath.past)
+  }, [splitPath])
+
+  const futurePoints = useMemo(() => {
+    if (!splitPath) return null
+    return toVec3Array(splitPath.future)
+  }, [splitPath])
 
   useFrame(() => {
     if (!selectedSatellite || !markerRef.current) return
@@ -35,6 +58,7 @@ export const SelectedSatellite = () => {
     const pos = propagatePosition(selectedSatellite.satrec, new Date())
     if (!pos) return
 
+    posRef.current = pos
     markerRef.current.position.set(pos.scene.x, pos.scene.y, pos.scene.z)
   })
 
@@ -43,6 +67,8 @@ export const SelectedSatellite = () => {
   const initialPos = propagatePosition(selectedSatellite.satrec, new Date())
   if (!initialPos) return null
 
+  const pos = posRef.current ?? initialPos
+
   return (
     <group>
       <mesh
@@ -50,32 +76,43 @@ export const SelectedSatellite = () => {
         position={[initialPos.scene.x, initialPos.scene.y, initialPos.scene.z]}
         onClick={() => flyTo(initialPos.scene)}
       >
-        <sphereGeometry args={[0.015, 16, 16]} />
-        <meshBasicMaterial color="#00ffff" transparent opacity={0.9} />
+        <sphereGeometry args={[0.015, 8, 8]} />
+        <meshBasicMaterial color={ORBIT_COLOR} />
       </mesh>
 
       <Html
         position={[initialPos.scene.x, initialPos.scene.y + 0.04, initialPos.scene.z]}
         center
-        style={{
-          color: '#00ffff',
-          fontSize: '11px',
-          fontFamily: 'monospace',
-          whiteSpace: 'nowrap',
-          textShadow: '0 0 8px rgba(0, 255, 255, 0.5)',
-          pointerEvents: 'none',
-        }}
+        style={labelStyle}
       >
-        {selectedSatellite.name}
+        <div>{selectedSatellite.name}</div>
+        <div>
+          {formatCoordinate(pos.geodetic.latitude, 'lat')}{' '}
+          {formatCoordinate(pos.geodetic.longitude, 'lon')}
+        </div>
+        <div>{formatVelocity(pos.velocity)}</div>
       </Html>
 
-      {orbitPoints && (
+      {pastPoints && pastPoints.length > 1 && (
         <Line
-          points={orbitPoints}
-          color="#00ffff"
-          lineWidth={1}
+          points={pastPoints}
+          color={ORBIT_COLOR}
+          lineWidth={1.5}
+          transparent
+          opacity={0.7}
+        />
+      )}
+
+      {futurePoints && futurePoints.length > 1 && (
+        <Line
+          points={futurePoints}
+          color={ORBIT_COLOR}
+          lineWidth={1.5}
           transparent
           opacity={0.4}
+          dashed
+          dashSize={0.05}
+          gapSize={0.03}
         />
       )}
     </group>

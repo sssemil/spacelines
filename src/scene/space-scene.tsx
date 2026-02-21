@@ -1,9 +1,10 @@
 import { Canvas } from '@react-three/fiber'
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import { EarthGlobe } from './earth/earth-globe'
+import { EarthCoastlines } from './earth/earth-coastlines'
 import { StarField } from './effects/star-field'
 import { SatellitePoints } from './satellites/satellite-points'
 import { SelectedSatellite } from './satellites/selected-satellite'
+import { SatelliteLabels } from './satellites/satellite-labels'
 import { CameraController } from './camera/camera-controller'
 
 export const SpaceScene = () => {
@@ -16,29 +17,21 @@ export const SpaceScene = () => {
         position: [0, 1.5, 4],
       }}
       gl={{
-        antialias: true,
+        antialias: false,
         alpha: false,
         powerPreference: 'high-performance',
       }}
-      style={{ background: '#000008' }}
+      style={{ background: '#000000' }}
     >
-      <ambientLight intensity={0.1} />
-      <directionalLight position={[5, 3, 5]} intensity={1.2} />
+      <ambientLight intensity={0.3} />
 
       <StarField />
       <EarthGlobe />
+      <EarthCoastlines />
       <SatellitePoints />
       <SelectedSatellite />
+      <SatelliteLabels />
       <CameraController />
-
-      <EffectComposer>
-        <Bloom
-          luminanceThreshold={0.2}
-          luminanceSmoothing={0.9}
-          intensity={0.8}
-        />
-        <Vignette darkness={0.6} offset={0.3} />
-      </EffectComposer>
     </Canvas>
   )
 }

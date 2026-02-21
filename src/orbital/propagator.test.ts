@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { twoline2satrec } from 'satellite.js'
-import { propagatePosition, computeOrbitPath } from './propagator'
+import { propagatePosition, computeOrbitPath, computeSplitOrbitPath } from './propagator'
 
 const ISS_TLE_LINE1 = '1 25544U 98067A   24015.50000000  .00002182  00000-0  36771-3 0  9993'
 const ISS_TLE_LINE2 = '2 25544  51.6461 247.4627 0006703 130.5360 259.8238 15.49560532438597'
@@ -103,5 +103,47 @@ describe('computeOrbitPath', () => {
       (first.x - last.x) ** 2 + (first.y - last.y) ** 2 + (first.z - last.z) ** 2
     )
     expect(dist).toBeLessThan(0.1)
+  })
+})
+
+describe('computeSplitOrbitPath', () => {
+  it('should return past and future orbit segments', () => {
+    const satrec = getIssSatrec()
+    const date = new Date('2024-01-15T12:00:00.000Z')
+    const meanMotion = 15.49560532
+
+    const result = computeSplitOrbitPath({ satrec, date, meanMotion, segments: 100 })
+
+    expect(result.past.length).toBeGreaterThan(0)
+    expect(result.future.length).toBeGreaterThan(0)
+    expect(result.past.length + result.future.length).toBe(100)
+  })
+
+  it('should have past segment ending near future segment start', () => {
+    const satrec = getIssSatrec()
+    const date = new Date('2024-01-15T12:00:00.000Z')
+    const meanMotion = 15.49560532
+
+    const result = computeSplitOrbitPath({ satrec, date, meanMotion, segments: 200 })
+
+    const pastEnd = result.past[result.past.length - 1]
+    const futureStart = result.future[0]
+    const dist = Math.sqrt(
+      (pastEnd.x - futureStart.x) ** 2 +
+      (pastEnd.y - futureStart.y) ** 2 +
+      (pastEnd.z - futureStart.z) ** 2
+    )
+    expect(dist).toBeLessThan(0.05)
+  })
+
+  it('should split segments evenly between past and future', () => {
+    const satrec = getIssSatrec()
+    const date = new Date('2024-01-15T12:00:00.000Z')
+    const meanMotion = 15.49560532
+
+    const result = computeSplitOrbitPath({ satrec, date, meanMotion, segments: 100 })
+
+    expect(result.past.length).toBe(50)
+    expect(result.future.length).toBe(50)
   })
 })
