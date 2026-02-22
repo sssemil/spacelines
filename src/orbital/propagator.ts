@@ -91,6 +91,8 @@ export const computeSplitOrbitPath = ({
   const now = date.getTime()
   const halfSegments = Math.floor(segments / 2)
 
+  const nowPos = propagatePosition(satrec, new Date(now))
+
   const past: ScenePosition[] = []
   for (let i = 0; i < halfSegments; i++) {
     const t = now - halfPeriodMs + (i / halfSegments) * halfPeriodMs
@@ -99,9 +101,12 @@ export const computeSplitOrbitPath = ({
       past.push(pos.scene)
     }
   }
+  if (nowPos) {
+    past.push(nowPos.scene)
+  }
 
-  const future: ScenePosition[] = []
-  for (let i = 0; i < halfSegments; i++) {
+  const future: ScenePosition[] = nowPos ? [nowPos.scene] : []
+  for (let i = 1; i < halfSegments; i++) {
     const t = now + (i / halfSegments) * halfPeriodMs
     const pos = propagatePosition(satrec, new Date(t))
     if (pos) {

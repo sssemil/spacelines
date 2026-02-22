@@ -11,6 +11,7 @@ describe('filter store', () => {
         'communications', 'debris', 'rocket-body',
       ]),
       showGroundStations: true,
+      showMoon: true,
     })
   })
 
@@ -78,4 +79,22 @@ describe('filter store', () => {
 
     expect(useFilterStore.getState().showGroundStations).toBe(true)
   })
+
+  it('should start with Moon visible', () => {
+    expect(useFilterStore.getState().showMoon).toBe(true)
+  })
+
+  it('should toggle Moon off', () => {
+    useFilterStore.getState().toggleMoon()
+
+    expect(useFilterStore.getState().showMoon).toBe(false)
+  })
+
+  it('should toggle Moon back on', () => {
+    useFilterStore.getState().toggleMoon()
+    useFilterStore.getState().toggleMoon()
+
+    expect(useFilterStore.getState().showMoon).toBe(true)
+  })
+
 })

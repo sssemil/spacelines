@@ -28,6 +28,8 @@ export const FilterPanel = () => {
   const disableAll = useFilterStore((s) => s.disableAllCategories)
   const showGroundStations = useFilterStore((s) => s.showGroundStations)
   const toggleGroundStations = useFilterStore((s) => s.toggleGroundStations)
+  const showMoon = useFilterStore((s) => s.showMoon)
+  const toggleMoon = useFilterStore((s) => s.toggleMoon)
   const satellites = useSatelliteStore((s) => s.satellites)
 
   const categoryCounts = useMemo(() => {
@@ -68,6 +70,12 @@ export const FilterPanel = () => {
           onClick={toggleGroundStations}
         >
           <span className="chip-label">Ground Stations</span>
+        </button>
+        <button
+          className={`filter-chip ${showMoon ? 'active' : 'inactive'}`}
+          onClick={toggleMoon}
+        >
+          <span className="chip-label">Moon</span>
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Satellite } from '../types/satellite'
+import { useGroundStationStore } from './ground-station-store'
 
 type SatelliteState = {
   readonly satellites: readonly Satellite[]
@@ -20,7 +21,10 @@ export const useSatelliteStore = create<SatelliteState>((set, get) => ({
   loading: false,
   error: null,
   setSatellites: (satellites) => set({ satellites }),
-  selectSatellite: (id) => set({ selectedId: id }),
+  selectSatellite: (id) => {
+    useGroundStationStore.getState().clearSelection()
+    set({ selectedId: id })
+  },
   clearSelection: () => set({ selectedId: null }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),

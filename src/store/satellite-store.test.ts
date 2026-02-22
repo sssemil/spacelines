@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { twoline2satrec } from 'satellite.js'
 import { useSatelliteStore } from './satellite-store'
+import { useGroundStationStore } from './ground-station-store'
 
 const ISS_TLE_LINE1 = '1 25544U 98067A   24015.50000000  .00002182  00000-0  36771-3 0  9993'
 const ISS_TLE_LINE2 = '2 25544  51.6461 247.4627 0006703 130.5360 259.8238 15.49560532438597'
@@ -84,5 +85,13 @@ describe('satellite store', () => {
     const selected = useSatelliteStore.getState().getSelectedSatellite()
 
     expect(selected).toBeUndefined()
+  })
+
+  it('should clear ground station selection when selecting a satellite', () => {
+    useGroundStationStore.setState({ selectedId: 42 })
+
+    useSatelliteStore.getState().selectSatellite(25544)
+
+    expect(useGroundStationStore.getState().selectedId).toBeNull()
   })
 })

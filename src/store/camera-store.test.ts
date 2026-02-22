@@ -66,4 +66,32 @@ describe('camera store', () => {
 
     expect(useCameraStore.getState().sunTrackMode).toBe(false)
   })
+
+  it('should default centerOnTarget to false', () => {
+    useCameraStore.getState().flyTo({ x: 1, y: 2, z: 3 })
+
+    expect(useCameraStore.getState().centerOnTarget).toBe(false)
+  })
+
+  it('should set centerOnTarget when passed in options', () => {
+    useCameraStore.getState().flyTo({ x: 60, y: 0, z: 0 }, { centerOnTarget: true })
+
+    expect(useCameraStore.getState().centerOnTarget).toBe(true)
+  })
+
+  it('should clear centerOnTarget on reset', () => {
+    useCameraStore.getState().flyTo({ x: 60, y: 0, z: 0 }, { centerOnTarget: true })
+
+    useCameraStore.getState().reset()
+
+    expect(useCameraStore.getState().centerOnTarget).toBe(false)
+  })
+
+  it('should clear centerOnTarget when enabling sun track', () => {
+    useCameraStore.getState().flyTo({ x: 60, y: 0, z: 0 }, { centerOnTarget: true })
+
+    useCameraStore.getState().enableSunTrack()
+
+    expect(useCameraStore.getState().centerOnTarget).toBe(false)
+  })
 })

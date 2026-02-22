@@ -13,6 +13,7 @@ export const CameraController = () => {
   const { camera, gl } = useThree()
   const target = useCameraStore((s) => s.target)
   const isAnimating = useCameraStore((s) => s.isAnimating)
+  const centerOnTarget = useCameraStore((s) => s.centerOnTarget)
   const onAnimationComplete = useCameraStore((s) => s.onAnimationComplete)
   const sunTrackMode = useCameraStore((s) => s.sunTrackMode)
   const disableSunTrack = useCameraStore((s) => s.disableSunTrack)
@@ -41,6 +42,15 @@ export const CameraController = () => {
     return () => canvas.removeEventListener('pointerdown', handlePointerDown)
   }, [sunTrackMode, disableSunTrack, gl.domElement])
 
+  useEffect(() => {
+    if (!isAnimating) return
+
+    const canvas = gl.domElement
+    const handlePointerDown = () => onAnimationComplete()
+    canvas.addEventListener('pointerdown', handlePointerDown)
+    return () => canvas.removeEventListener('pointerdown', handlePointerDown)
+  }, [isAnimating, onAnimationComplete, gl.domElement])
+
   useFrame(() => {
     if (sunTrackMode) {
       positionCameraToSun()
@@ -54,15 +64,26 @@ export const CameraController = () => {
     if (!isAnimating || !target || !controlsRef.current) return
 
     const targetVec = new THREE.Vector3(target.x, target.y, target.z)
-    const direction = targetVec.clone().normalize()
-    const cameraTarget = direction.multiplyScalar(
-      targetVec.length() + 0.5,
-    )
 
-    camera.position.lerp(cameraTarget, ANIMATION_SPEED)
+    if (centerOnTarget) {
+      const direction = targetVec.clone().normalize()
+      const cameraGoal = direction.multiplyScalar(targetVec.length() - 1.5)
 
-    const distance = camera.position.distanceTo(cameraTarget)
-    if (distance < 0.01) {
+      controlsRef.current.target.lerp(targetVec, ANIMATION_SPEED)
+      camera.position.lerp(cameraGoal, ANIMATION_SPEED)
+      controlsRef.current.update()
+    } else {
+      const direction = targetVec.clone().normalize()
+      const cameraGoal = direction.multiplyScalar(targetVec.length() + 0.5)
+
+      controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), ANIMATION_SPEED)
+      camera.position.lerp(cameraGoal, ANIMATION_SPEED)
+      controlsRef.current.update()
+    }
+
+    const goalDist = centerOnTarget ? targetVec.length() - 1.5 : targetVec.length() + 0.5
+    const goalVec = targetVec.clone().normalize().multiplyScalar(goalDist)
+    if (camera.position.distanceTo(goalVec) < 0.01) {
       onAnimationComplete()
     }
   })
@@ -73,7 +94,7 @@ export const CameraController = () => {
       enabled={!sunTrackMode}
       enablePan={false}
       minDistance={1.5}
-      maxDistance={20}
+      maxDistance={75}
       enableDamping
       dampingFactor={0.05}
       rotateSpeed={0.5}

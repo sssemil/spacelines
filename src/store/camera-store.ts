@@ -1,11 +1,16 @@
 import { create } from 'zustand'
 import type { ScenePosition } from '../types/satellite'
 
+type FlyToOptions = {
+  readonly centerOnTarget?: boolean
+}
+
 type CameraState = {
   readonly target: ScenePosition | null
   readonly isAnimating: boolean
   readonly sunTrackMode: boolean
-  readonly flyTo: (target: ScenePosition) => void
+  readonly centerOnTarget: boolean
+  readonly flyTo: (target: ScenePosition, options?: FlyToOptions) => void
   readonly onAnimationComplete: () => void
   readonly reset: () => void
   readonly enableSunTrack: () => void
@@ -16,9 +21,15 @@ export const useCameraStore = create<CameraState>((set) => ({
   target: null,
   isAnimating: false,
   sunTrackMode: true,
-  flyTo: (target) => set({ target, isAnimating: true, sunTrackMode: false }),
+  centerOnTarget: false,
+  flyTo: (target, options) => set({
+    target,
+    isAnimating: true,
+    sunTrackMode: false,
+    centerOnTarget: options?.centerOnTarget ?? false,
+  }),
   onAnimationComplete: () => set({ isAnimating: false }),
-  reset: () => set({ target: null, isAnimating: false, sunTrackMode: true }),
-  enableSunTrack: () => set({ sunTrackMode: true, target: null, isAnimating: false }),
+  reset: () => set({ target: null, isAnimating: false, sunTrackMode: true, centerOnTarget: false }),
+  enableSunTrack: () => set({ sunTrackMode: true, target: null, isAnimating: false, centerOnTarget: false }),
   disableSunTrack: () => set({ sunTrackMode: false }),
 }))

@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { useSatelliteStore } from '../../store/satellite-store'
@@ -10,6 +11,7 @@ import type { Satellite, SatellitePosition } from '../../types/satellite'
 const LABEL_COUNT = 20
 const UPDATE_INTERVAL_FRAMES = 90
 const MIN_SCREEN_SEPARATION = 0.12
+const EARTH_SCENE_RADIUS = 1.0
 
 type LabelData = {
   readonly sat: Satellite
@@ -26,6 +28,40 @@ const labelStyle: React.CSSProperties = {
   whiteSpace: 'nowrap',
   pointerEvents: 'none',
   lineHeight: '1.3',
+}
+
+type Vec3 = { readonly x: number; readonly y: number; readonly z: number }
+
+export const isOccludedByEarth = (
+  cameraPos: Vec3,
+  satPos: Vec3,
+  earthRadius: number,
+): boolean => {
+  const dx = satPos.x - cameraPos.x
+  const dy = satPos.y - cameraPos.y
+  const dz = satPos.z - cameraPos.z
+  const rayLen = Math.sqrt(dx * dx + dy * dy + dz * dz)
+  if (rayLen < 0.0001) return false
+
+  const nx = dx / rayLen
+  const ny = dy / rayLen
+  const nz = dz / rayLen
+
+  const ocx = -cameraPos.x
+  const ocy = -cameraPos.y
+  const ocz = -cameraPos.z
+
+  const tca = ocx * nx + ocy * ny + ocz * nz
+  if (tca < 0) return false
+
+  const ocLenSq = ocx * ocx + ocy * ocy + ocz * ocz
+  const dSq = ocLenSq - tca * tca
+  if (dSq > earthRadius * earthRadius) return false
+
+  const thc = Math.sqrt(earthRadius * earthRadius - dSq)
+  const t0 = tca - thc
+
+  return t0 > 0 && t0 < rayLen
 }
 
 const pickSpreadLabels = (
@@ -91,6 +127,15 @@ export const SatelliteLabels = () => {
     const now = new Date()
     const camPos = camera.position
 
+    camera.updateWorldMatrix(true, false)
+    const frustum = new THREE.Frustum()
+    const projScreenMatrix = new THREE.Matrix4()
+    projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse)
+    frustum.setFromProjectionMatrix(projScreenMatrix)
+
+    const camVec3 = { x: camPos.x, y: camPos.y, z: camPos.z }
+    const satPoint = new THREE.Vector3()
+
     const candidates: LabelData[] = []
     for (const sat of satellites) {
       if (!activeCategories.has(sat.category)) continue
@@ -99,10 +144,15 @@ export const SatelliteLabels = () => {
       const pos = propagatePosition(sat.satrec, now)
       if (!pos) continue
 
+      satPoint.set(pos.scene.x, pos.scene.y, pos.scene.z)
+      if (!frustum.containsPoint(satPoint)) continue
+
+      if (isOccludedByEarth(camVec3, pos.scene, EARTH_SCENE_RADIUS)) continue
+
       candidates.push({ sat, pos })
     }
 
-    const picked = pickSpreadLabels(candidates, { x: camPos.x, y: camPos.y, z: camPos.z })
+    const picked = pickSpreadLabels(candidates, camVec3)
     setLabels(picked)
   })
 

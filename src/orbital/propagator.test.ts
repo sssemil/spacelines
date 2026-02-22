@@ -116,34 +116,51 @@ describe('computeSplitOrbitPath', () => {
 
     expect(result.past.length).toBeGreaterThan(0)
     expect(result.future.length).toBeGreaterThan(0)
-    expect(result.past.length + result.future.length).toBe(100)
+    expect(result.past.length + result.future.length).toBe(101)
   })
 
-  it('should have past segment ending near future segment start', () => {
+  it('should have past array ending exactly at current position', () => {
     const satrec = getIssSatrec()
     const date = new Date('2024-01-15T12:00:00.000Z')
     const meanMotion = 15.49560532
 
     const result = computeSplitOrbitPath({ satrec, date, meanMotion, segments: 200 })
+    const currentPos = propagatePosition(satrec, date)
 
-    const pastEnd = result.past[result.past.length - 1]
-    const futureStart = result.future[0]
-    const dist = Math.sqrt(
-      (pastEnd.x - futureStart.x) ** 2 +
-      (pastEnd.y - futureStart.y) ** 2 +
-      (pastEnd.z - futureStart.z) ** 2
-    )
-    expect(dist).toBeLessThan(0.05)
+    expect(currentPos).not.toBeNull()
+    if (!currentPos) return
+
+    const lastPast = result.past[result.past.length - 1]
+    expect(lastPast.x).toBeCloseTo(currentPos.scene.x, 10)
+    expect(lastPast.y).toBeCloseTo(currentPos.scene.y, 10)
+    expect(lastPast.z).toBeCloseTo(currentPos.scene.z, 10)
   })
 
-  it('should split segments evenly between past and future', () => {
+  it('should have future array starting exactly at current position', () => {
+    const satrec = getIssSatrec()
+    const date = new Date('2024-01-15T12:00:00.000Z')
+    const meanMotion = 15.49560532
+
+    const result = computeSplitOrbitPath({ satrec, date, meanMotion, segments: 200 })
+    const currentPos = propagatePosition(satrec, date)
+
+    expect(currentPos).not.toBeNull()
+    if (!currentPos) return
+
+    const firstFuture = result.future[0]
+    expect(firstFuture.x).toBeCloseTo(currentPos.scene.x, 10)
+    expect(firstFuture.y).toBeCloseTo(currentPos.scene.y, 10)
+    expect(firstFuture.z).toBeCloseTo(currentPos.scene.z, 10)
+  })
+
+  it('should have past and future arrays with expected lengths', () => {
     const satrec = getIssSatrec()
     const date = new Date('2024-01-15T12:00:00.000Z')
     const meanMotion = 15.49560532
 
     const result = computeSplitOrbitPath({ satrec, date, meanMotion, segments: 100 })
 
-    expect(result.past.length).toBe(50)
+    expect(result.past.length).toBe(51)
     expect(result.future.length).toBe(50)
   })
 })

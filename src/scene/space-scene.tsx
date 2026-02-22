@@ -8,6 +8,7 @@ import { SatellitePoints } from './satellites/satellite-points'
 import { SelectedSatellite } from './satellites/selected-satellite'
 import { SatelliteLabels } from './satellites/satellite-labels'
 import { CameraController } from './camera/camera-controller'
+import { Moon } from './celestial/moon'
 
 export const SpaceScene = () => {
   return (
@@ -28,6 +29,7 @@ export const SpaceScene = () => {
       <ambientLight intensity={0.3} />
 
       <StarField />
+      <Moon />
       <EarthGlobe />
       <EarthLandmass />
       <EarthCoastlines />
